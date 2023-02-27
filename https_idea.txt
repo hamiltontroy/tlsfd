@@ -90,3 +90,60 @@ system is barely involved. After the handshake
 happens, all the encryption and decryption can
 happen in a calling thread, then the encrypted
 or decrypted buffers can do their thing.
+
+
+// simple server implementation
+// headers
+
+int main(void)
+{
+	// normal tcp socket setup
+	
+	void *pem_file;
+	int pem_len;
+	// load pem files which have private keys
+	
+	unsigned char *buf;
+	int buflen;
+	// malloc a buffer of size 1024
+	// ... malloc() boilerplate
+	
+	while(1)
+	{
+		int clientfd = accept(listener, NULL, NULL);
+		// do error checking ...
+		
+		struct protocol_agreement protocols;
+		
+		int retval;
+		retval = handshake(clientfd, &protocols, pem_file, pem_len);
+		// do error checking
+		if(retval == -1)
+		{
+			close(clientfd);
+			continue;
+		}
+		
+		retval = read(clientfd, buf, 1024);
+		if(retval == -1)
+		{
+			close(clientfd);
+			continue;
+		}
+		
+		// buf will now contain encrypted data
+		// after the read()
+		
+		unsigned char * plainbuf;
+		int plainlen;
+		plainbuf = decrypt(buf, 1024, &plainlen, &protocols);
+		
+		// free() buf or something
+		
+		// perform processing on plainbuf now
+		
+	}
+
+
+	return 0;
+}
