@@ -1,0 +1,92 @@
+this is an idea.
+
+I want to make a tls 1.3 library that handles
+the entire procedure, from the handshake to 
+the actual session easily.
+
+it will use linux as its implementation.
+
+there are several stages to a tls secured connection.
+
+1, the handshake, a client will request a tls connection
+2, negotiation, protocols will be negoiated between the client
+ and server.
+3, data can be encrypted, sent, read, decrypted, processed.
+
+Learn how the handshake works, ignore corner cases and terminate
+connections if any error or nonstandard event transpires.
+after the handshake, return a struct with the specifications
+of the connection.
+
+have a function which takes a buffer of unencrypted data,
+and then encrypts the buffer.
+
+write()ing process:
+attempt a tls handshake, if it works, continue, or exit
+get a struct that has the specifications of the connection.
+
+whenever data needs to be sent, have a function which
+takes a buffer of unencrypted data, then encrypts the data.
+it returns a pointer to a buffer containing the encrypted data.
+
+void * encrypt(void *prebuf, int prelen, int *postlen, struct protocol_agreement *protocols);
+// example use.
+
+unsigned char * encrypted_buffer;
+int postlen;
+
+encrypted_buffer = encrypt(plainbuf, 1024, &postlen, &protocols);
+if(encrypted_buffer == NULL)
+{
+	free(plainbuf);
+	return -1;
+}
+
+// simple way to send encrypted data over unix sockets
+send(fd, encrypted_buffer, postlen);
+
+read()ing process:
+
+there will be a function which takes a buffer of encrypted
+data, then unencrypts the data so it can be readily used.
+
+void * decrypt(void *prebuf, int prelen, int *postlen, struct protocol_agreement *protocols);
+
+
+// a read() occurred and there is some buffer full of encrypted data.
+
+unsigned char * plainbuf;
+int plainlen;
+
+plainbuf = decrypt(encrypted_buffer, 1024, &plainlen, &protocols);
+
+free(encrypted_buffer);
+
+// do work now.
+process(plainbuf, plainlen); 
+
+
++++++++++++++++++++++++++++++++++++++
+advantages.
+
+Here is the above approach (simplified):
+
+tls handshake
+read() on some file descriptor.
+decrypt the read buffer
+free the encrypted buffer
+perform processing on the plain buffer.
+
+tls handshake
+...
+have a plain buffer
+encrypt the plain buffer
+free the plain buffer
+send the encrypted buffer
+
+
+The advantages are that the operating
+system is barely involved. After the handshake 
+happens, all the encryption and decryption can
+happen in a calling thread, then the encrypted
+or decrypted buffers can do their thing.
